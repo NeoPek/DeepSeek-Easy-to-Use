@@ -1,5 +1,5 @@
 # DeepSeek-Easy-to-Use  
-### 一个用于 DeepSeek-R1 的超轻量小程序，个人娱乐  
+### 一个用于 DeepSeek-R1 的超轻量小脚本，个人娱乐  
 ### An ultra-lightweight mini program for DeepSeek-R1, for personal entertainment  
 
 ---
@@ -16,6 +16,12 @@
 - Python=3.10  
 - OpenAI 依赖包  
   OpenAI package dependency  
+---
+
+# 使用方法 / How to Use
+- 确保你已经正确安装了环境
+- 用你的API替换代码中的<YOUR_API_KEY>
+- python deepseek-easy-to-use.py
 
 ---
 
