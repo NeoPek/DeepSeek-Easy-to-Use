@@ -20,7 +20,9 @@
 
 # 使用方法 / How to Use
 - 确保你已经正确安装了环境
+  Ensure you have properly set up the environment
 - 用你的API替换代码中的<YOUR_API_KEY>
+  Replace the placeholder `<YOUR_API_KEY>` with your actual API key
 - python deepseek-easy-to-use.py
 
 ---
