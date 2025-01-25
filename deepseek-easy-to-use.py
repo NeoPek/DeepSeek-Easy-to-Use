@@ -15,10 +15,8 @@ os.makedirs(HISTORY_DIR, exist_ok=True)
 client = OpenAI(api_key="<YOUR_API_KEY>", base_url="https://api.deepseek.com/v1")
 
 #其他设置
-PROMPT_TOPIC = '用户正在通过api发起一个新的对话，请根据用户的发言总结此次对话的主题，不要回答任何多余内容' 
-#          prompt hack 啦
-# ╭(￣▽￣)╯
-#
+PROMPT_TOPIC = "用户正在通过api发起一个新的对话，请根据用户最初的发言直接回复此次对话的主题，不要回答任何多余内容"
+
 class ChatApplication:
     def __init__(self, root):
         self.root = root
@@ -49,10 +47,12 @@ class ChatApplication:
         btn_new = tk.Button(button_frame, text="开始新对话", command=self.start_new_conversation)
         btn_continue = tk.Button(button_frame, text="继续对话", command=self.continue_conversation)
         btn_load = tk.Button(button_frame, text="读取对话", command=self.load_conversation)
+        btn_delete = tk.Button(button_frame, text="删除对话", command=self.delete_conversation)  # 新增删除按钮
         
         btn_new.pack(fill=tk.X, pady=2)
         btn_continue.pack(fill=tk.X, pady=2)
         btn_load.pack(fill=tk.X, pady=2)
+        btn_delete.pack(fill=tk.X, pady=2)  # 添加按钮到界面
         
         # 右侧文件列表
         file_frame = tk.Frame(self.start_frame)
@@ -176,6 +176,43 @@ class ChatApplication:
         else:
             messagebox.showinfo("提示", "请先选择一个对话文件")
 
+    def delete_conversation(self):
+        if not self.selected_file:
+            messagebox.showinfo("提示", "请先选择一个要删除的对话文件")
+            return
+        
+        file_path = os.path.join(HISTORY_DIR, self.selected_file)
+        
+        # 二次确认
+        if not messagebox.askyesno("确认删除", f"确定要永久删除对话文件：\n{self.selected_file} 吗？"):
+            return
+        
+        try:
+            # 如果删除的是当前对话
+            if self.current_conversation == file_path:
+                self.current_conversation = None
+                self.messages = []
+                self.switch_to_start()
+            
+            os.remove(file_path)
+            
+            # 更新配置文件
+            if os.path.exists(CONFIG_FILE):
+                with open(CONFIG_FILE, 'r+') as f:
+                    config = json.load(f)
+                    if config.get('last_conversation') == file_path:
+                        config['last_conversation'] = None
+                        f.seek(0)
+                        json.dump(config, f)
+                        f.truncate()
+            
+            messagebox.showinfo("成功", "对话文件已删除")
+            self.load_file_list()
+            self.selected_file = None
+            
+        except Exception as e:
+            messagebox.showerror("删除失败", f"删除文件时出错：{str(e)}")
+
     def switch_to_chat(self):
         self.start_frame.pack_forget()
         self.chat_frame.pack(fill=tk.BOTH, expand=True)
@@ -203,7 +240,7 @@ class ChatApplication:
     def load_history(self, file_path):
         if os.path.exists(file_path):
             with open(file_path, 'r', encoding='utf-8') as f:
-                return [{**entry, 'content': re.sub(PROMPT_TOPIC, '', entry['content'])} for entry in json.load(f) if 'content' in entry]
+                return json.load(f)
         return []
 
     def load_history_to_ui(self):
@@ -217,6 +254,8 @@ class ChatApplication:
 
     def send_message(self):
         user_input = self.user_entry.get("1.0", tk.END).strip()
+        is_new_conversation = not self.current_conversation
+
         if not user_input:
             return
         
@@ -232,14 +271,20 @@ class ChatApplication:
         self.user_entry.configure(height=self.user_entry.default_height)
         self.user_entry.focus_set()
         
-        is_new_conversation = not self.current_conversation
+        
         if is_new_conversation:
             timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
             self.current_conversation = os.path.join(HISTORY_DIR, f"temp_{timestamp}.json")
             self.update_config('last_conversation', self.current_conversation)
             
-            threading.Thread(target=self.stream_response, args=(self.messages.copy(), False)).start()
-            threading.Thread(target=self.stream_response, args=([{"role": "user", "content": PROMPT_TOPIC}], True)).start()
+            # threading.Thread(target=self.stream_response, args=(self.messages.copy(), False)).start()
+            # threading.Thread(target=self.stream_response, args=([{"role": "user", "content": PROMPT_TOPIC}], True)).start()
+            def sequential_stream():
+                self.stream_response(self.messages, False)
+                temp_messages = self.messages.copy()
+                temp_messages.append({"role": "user", "content": PROMPT_TOPIC})
+                self.stream_response(temp_messages, True)
+            threading.Thread(target=sequential_stream).start()
         else:
             threading.Thread(target=self.stream_response, args=(self.messages.copy(), False)).start()
 
