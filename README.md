@@ -1,5 +1,5 @@
 # DeepSeek-Easy-to-Use  
-### 一个用于 DeepSeek-R1 的超轻量脚本 / An Ultra-Lightweight Script for DeepSeek-R1  
+### 一个用于 DeepSeek-R1 API的超轻量脚本 / An Ultra-Lightweight Script for DeepSeek-R1 API 
 #### 个人娱乐项目 / For Personal Entertainment  
 
 ---
